@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Xml.Serialization;
 using Newtonsoft.Json;
 
 
@@ -50,39 +51,64 @@ namespace RedactFile
             {
                 Console.WriteLine("Введите путь до файла: ");
                 string path = Console.ReadLine();
-                using (StreamReader read = new StreamReader(path))
+
+                /*Здесь хранится разширение файла*/
+
+                string ext = Path.GetExtension(path);
+
+                if (ext == ".txt")
                 {
-                    /*Здесь хранится разширение файла*/
+                    Console.Clear();
+                    string[] text = File.ReadAllText(path).Split();
+                    JsonSruct result = new JsonSruct();
 
-                    string ext = Path.GetExtension(path);
+                    result.firstName = text[0];
+                    result.lastName = text[1];
+                    result.gender = text[2];
+                    result.age = Convert.ToInt32(text[3]);
+                    result.address.streetAddress = text[4];
+                    result.address.city = text[5];
+                    result.address.state = text[6];
+                    result.phoneNumbers.type = text[7];
+                    result.phoneNumbers.number = text[8];
 
-                    if (ext == ".txt")
-                    {
-                        string text = read.ReadToEnd();
-                    }
-
-                    else if (ext == ".json")
-                    {
-                        Console.Clear();
-                        string a = read.ReadToEnd();
-                        List<JsonSruct> con = JsonConvert.DeserializeObject<List<JsonSruct>>(a);
-                        Dictionary<int, string> text = new Dictionary<int, string>();
-                        foreach (var sruct in con)
-                        {
-
-                            text = toDict(sruct);
-                        }
-
-
-                        var clDict = toClass(ReadLine(text));
-
-                    }
-
-                    else if (ext == ".xaml")
-                    {
-
-                    }
+                    var d1 = ReadLine(toDict(result));
                 }
+
+                else if (ext == ".json")
+                {
+                    Console.Clear();
+
+                    JsonSruct con;
+
+                    using (StreamReader read = new StreamReader(path))
+                    {
+                        string a = read.ReadToEnd();
+                        con = JsonConvert.DeserializeObject<JsonSruct>(a);
+                    }
+
+                    
+                    Dictionary<int, string> text = new Dictionary<int, string>();
+
+                    text = toDict(con);
+
+                    var clDict = toClass(ReadLine(text));
+
+                }
+
+                else if (ext == ".xml")
+                {
+                    Console.Clear();
+                    XmlSerializer xml = new XmlSerializer(typeof(JsonSruct));
+                    JsonSruct js = new JsonSruct();
+                    using (FileStream fs = new FileStream(path, FileMode.Open))
+                    {
+                        js = (JsonSruct)xml.Deserialize(fs);
+                    }
+                    var d1 = ReadLine(toDict(js));
+
+                }
+                
 
             }
         }
@@ -174,13 +200,20 @@ namespace RedactFile
                     break;
                 }
 
+                else if (key.Key == ConsoleKey.F1)
+                {
+                    Console.Clear();
+                    saveText(text);
+                    break;
+
+                }
+
                 Console.Clear();
 
                 foreach (var i in text.Values)
                 {
                     Console.WriteLine(i);
                 }
-                Console.WriteLine(goPos);
 
                 Console.SetCursorPosition(goPos, verPos);
                 goMax = text[verPos].Length - 1;
@@ -188,6 +221,56 @@ namespace RedactFile
 
                 return text;
 
+
+        }
+
+        public static void saveText(Dictionary<int, string> ser)
+        {
+            Console.WriteLine("Введите директорию в, которую сохраните файл:");
+            string path = Console.ReadLine();
+            string ext = Path.GetExtension(path);
+            JsonSruct cl = toClass(ser);
+
+            switch (ext)
+            {
+                case ".txt":
+
+                    File.Delete(path);
+                    
+                    
+                    
+
+                    foreach (var i in ser.Keys)
+                    {
+                        if (File.Exists(path))
+                        {
+                            File.AppendAllText(path, ser[i] + "\n");
+                        }
+                        else
+                        {
+                            File.WriteAllText(path, ser[i] + "\n");
+                        }
+
+                    }
+                    break;
+
+                case ".json":
+                    string json = JsonConvert.SerializeObject(cl);
+                    File.WriteAllText(path, json);
+                    break;
+
+                case ".xml":
+                    
+                    JsonSruct js = new JsonSruct();
+                    using (FileStream fs = new FileStream(path, FileMode.OpenOrCreate))
+                    {
+                        XmlSerializer xml = new XmlSerializer(typeof(JsonSruct));
+                        xml.Serialize(fs, cl);
+                    }
+                    break;
+            }
+
+            Console.Clear();
 
         }
     }
